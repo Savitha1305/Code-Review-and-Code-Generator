@@ -1,0 +1,116 @@
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import "prismjs/themes/prism.css";
+import Editor from "react-simple-code-editor";
+import Prism from "prismjs";
+import Markdown from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
+import axios from 'axios';
+import './GenerateCode.css';
+import { FaCode, FaArrowLeft, FaMagic } from 'react-icons/fa';
+
+function GenerateCode() {
+  const [code, setCode] = useState(`Generate a code for`);
+  const [generate, setGenerate] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    Prism.highlightAll();
+  }, []);
+
+  async function generateCode() {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await axios.post('http://localhost:8000/ai/get-review', { code });
+      setGenerate(response.data);
+    } catch (error) {
+      setError('Failed to generate code. Please try again.');
+      console.error('Error generating code:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  return (
+    <div className="code-generator-container">
+      <nav className="code-generator-nav">
+        <div className="nav-content">
+          <Link to="/" className="back-button">
+            <FaArrowLeft /> Back
+          </Link>
+          <div className="nav-title">
+            <FaCode className="nav-icon" />
+            <h1>Generate Code</h1>
+          </div>
+        </div>
+      </nav>
+
+      <main className="code-generate-main">
+        <div className="editor-section">
+          <div className="editor-header">
+            <h2>Your Code</h2>
+          </div>
+          <div className="code-editor-container">
+            <div className="code-editor">
+              <Editor
+                value={code}
+                onValueChange={code => setCode(code)}
+                highlight={code => Prism.highlight(code, Prism.languages.javascript, "javascript")}
+                padding={20}
+                className="editor-textarea"
+                style={{
+                  fontFamily: '"Fira Code", monospace',
+                  fontSize: 16,
+                  backgroundColor: 'transparent',
+                  minHeight: '100%',
+                }}
+              />
+            </div>
+          </div>
+          <div className="button-container">
+            <button 
+              onClick={generateCode} 
+              className={`generate-button ${isLoading ? 'loading' : ''}`}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <span className="loading-spinner"></span>
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <FaMagic /> Generate Code
+                </>
+              )}
+            </button>
+          </div>
+          {error && <div className="error-message">{error}</div>}
+        </div>
+        
+        <div className="generate-section">
+          <div className="generate-header">
+            <h2>Generate Results</h2>
+          </div>
+          <div className="generate-content">
+            {generate ? (
+              <Markdown rehypePlugins={[rehypeHighlight]}>
+                {generate}
+              </Markdown>
+            ) : (
+              <div className="placeholder-text">
+                <FaCode size={24} />
+                <p>Your generated code will appear here</p>
+                <span className="placeholder-hint">Click "Generate Code" to start analysis</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export default GenerateCode;
